@@ -3,18 +3,17 @@ from datetime import date
 
 import yfinance as yf
 import numpy as np
-np.float_ = np.float64
 from prophet import Prophet
 from prophet.plot import plot_plotly
 from plotly import graph_objs as go
-
+import pandas as pd
 
 START = "2015-01-01"
 TODAY = date.today().strftime("%Y-%m-%d")
 
 st.title("Financial Forcasts")
 
-# Create an input box for the ticker symbol
+# input box for the ticker symbol
 selected_stock = st.text_input("Enter Ticker Symbol:", "")
 
 # Convert the entered ticker to uppercase to make it case-insensitive
@@ -61,6 +60,10 @@ if selected_stock:
         # Forecasting
         df_train = data[['Date', 'Close']]
         df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
+
+        # Ensure ds is datetime and y is numeric
+        df_train['ds'] = pd.to_datetime(df_train['ds'], errors='coerce')
+        df_train['y'] = pd.to_numeric(df_train['y'], errors='coerce')
 
         m = Prophet()
         m.fit(df_train)
