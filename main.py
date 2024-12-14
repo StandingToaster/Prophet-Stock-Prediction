@@ -61,10 +61,6 @@ if selected_stock:
         df_train = data[['Date', 'Close']]
         df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
 
-        # Ensure ds is datetime and y is numeric
-        df_train['ds'] = pd.to_datetime(df_train['ds'], errors='coerce')
-        df_train['y'] = pd.to_numeric(df_train['y'], errors='coerce')
-
         m = Prophet()
         m.fit(df_train)
         future = m.make_future_dataframe(periods=period)
