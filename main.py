@@ -47,28 +47,28 @@ if selected_stock:
             unsafe_allow_html=True
         )
 
-        # ✅ Use st.dataframe() to make sure it expands properly
+        # Use st.dataframe() to make sure it expands properly
         st.dataframe(data.tail(), use_container_width=True)
 
 
         # Plot Stock Prices
         def plot_raw_data():
-            # ✅ Get the latest date in the dataset
-            latest_date = pd.to_datetime(data['Date']).max()  # ✅ Ensures it's a datetime object
+            # Get the latest date in the dataset
+            latest_date = pd.to_datetime(data['Date']).max()  # Ensures it's a datetime object
 
-            # ✅ Set the default starting view (e.g., last 1 year)
+            # Set the default starting view (e.g., last 1 year)
             start_display_date = latest_date - pd.DateOffset(years=1)
 
-            # ✅ Create a new figure for historical stock data
+            # Create a new figure for historical stock data
             fig = go.Figure()
 
-            # ✅ Add only "Close" prices with a dark blue line
+            # Add only "Close" prices with a dark blue line
             fig.add_trace(go.Scatter(
                 x=data['Date'], y=data['Close'], 
                 name="Close Prices", line=dict(color="blue")
             ))
 
-            # ✅ Adjust default zoom to last year + future
+            # Adjust default zoom to last year + future
             fig.update_layout(
                 title="Stock Price Trend (Last Year)",
                 xaxis_rangeslider_visible=True,
@@ -79,9 +79,9 @@ if selected_stock:
 
         plot_raw_data()
 
-        # 📌 Forecasting Logic (Prophet or LSTM)
+        # Forecasting Logic (Prophet or LSTM)
 
-        # 📌 Select Prediction Model
+        # Select Prediction Model
         model_choice = st.radio("Select Prediction Model:", ["Prophet", "LSTM"])
 
         latest_date = pd.to_datetime(data["Date"]).max()
@@ -89,17 +89,17 @@ if selected_stock:
         if model_choice == "Prophet":
             st.subheader("📊 Stock Price Forecast (Prophet)")
 
-            # ✅ Train Prophet Model
+            # Train Prophet Model
             df_train = data[['Date', 'Close']].rename(columns={"Date": "ds", "Close": "y"})
             model = Prophet()
             model.fit(df_train)
             future = model.make_future_dataframe(periods=365)
             forecast = model.predict(future)
 
-            # ✅ Filter forecast to only show future predictions
+            # Filter forecast to only show future predictions
             future_forecast = forecast[forecast['ds'] >= latest_date]
 
-            # ✅ Create & Plot Prophet Forecast (No Changes)
+            # Create & Plot Prophet Forecast (No Changes)
             fig_forecast = go.Figure()
 
             fig_forecast.add_trace(go.Scatter(
@@ -123,14 +123,14 @@ if selected_stock:
         elif model_choice == "LSTM":
             st.subheader("📊 Stock Price Forecast (LSTM)")
 
-            # ✅ Train LSTM Model
+            # Train LSTM Model
             model, scaler = train_lstm_model(data)
 
-            # ✅ Predict with LSTM
+            # Predict with LSTM
             lstm_forecast = predict_lstm(model, data, scaler, future_days=365)
             future_dates = pd.date_range(start=latest_date, periods=365, freq="D")
 
-            # ✅ Create & Plot LSTM Forecast (Following Prophet's Format)
+            # Create & Plot LSTM Forecast (Following Prophet's Format)
             fig_lstm = go.Figure()
 
             fig_lstm.add_trace(go.Scatter(
@@ -151,8 +151,8 @@ if selected_stock:
 
             st.plotly_chart(fig_lstm)
 
-        # 📌 NEW: Fetch & Display Financial News
-        # 📌 Fetch & Display Financial News with GPT-3.5 Sentiment Analysis
+        # NEW: Fetch & Display Financial News
+        # Fetch & Display Financial News with GPT-3.5 Sentiment Analysis
         st.subheader("📰 Latest Financial News with Sentiment Analysis")
 
         news_headlines = get_financial_news(selected_stock)
@@ -170,4 +170,4 @@ if selected_stock:
 
 
     else:
-        st.write("❌ Invalid ticker symbol. Please enter a valid stock ticker.")
+        st.write("Invalid ticker symbol. Please enter a valid stock ticker.")

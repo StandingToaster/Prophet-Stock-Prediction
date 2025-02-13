@@ -5,13 +5,13 @@ import openai
 import os
 from dotenv import load_dotenv
 
-# ✅ Load API key
+# Load API key
 load_dotenv()
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 
-# ✅ Initialize OpenAI client
+# Initialize OpenAI client
 client = openai.OpenAI()
 
 def get_financial_news(ticker):
