@@ -10,6 +10,15 @@ A web application for predicting stock prices and analyzing market sentiment usi
 
 ---
 
+## Demo Screenshots
+
+### Stock Selection and Data Display
+![Stock Forecasting](./Images/Selection.png)
+
+### Stock Prediction & Sentiment Analysis
+![Sentiment Analysis](./Images/Prediction.png)
+
+
 ### **Installation**  
 
 Ensure all dependencies are installed from **requirements.txt** (recommended inside a virtual environment). Prophet requires additional dependencies—refer to [Prophet Installation Guide](https://facebook.github.io/prophet/docs/installation.html).  
