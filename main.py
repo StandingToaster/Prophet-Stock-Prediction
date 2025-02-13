@@ -1,84 +1,173 @@
 import streamlit as st
-from datetime import date
-
-import yfinance as yf
-import numpy as np
+import pandas as pd
+import torch
 from prophet import Prophet
 from prophet.plot import plot_plotly
 from plotly import graph_objs as go
-import pandas as pd
+from data_loader import load_stock_data
+from sentiment_analysis import get_financial_news, analyze_sentiment
+from lstm_model import train_lstm_model, predict_lstm 
 
-START = "2015-01-01"
-TODAY = date.today().strftime("%Y-%m-%d")
 
-st.title("Financial Forcasts")
 
-# input box for the ticker symbol
-selected_stock = st.text_input("Enter Ticker Symbol:", "")
 
-# Convert the entered ticker to uppercase to make it case-insensitive
-selected_stock = selected_stock.upper()
+st.title("📈 Financial Forecast & News Viewer")
 
-# Only display the following sections if a ticker is entered
+
+# Input: Stock Ticker
+selected_stock = st.text_input("Enter Ticker Symbol:", "").upper()
+
 if selected_stock:
-    n_years = st.slider("Years of prediction:", 1, 4)
-    period = n_years * 365
+    st.subheader(f"🔍 Stock Data for {selected_stock}")
 
-    @st.cache_data
-    def load_data(ticker):
-        try:
-            # Attempt to download the stock data
-            data = yf.download(ticker, START, TODAY)
-            if data.empty:
-                raise ValueError(f"No data found for ticker symbol: {ticker}")
-            data.reset_index(inplace=True)
-            return data
-        except Exception as e:
-            # Handle errors (e.g., invalid ticker or network issue)
-            st.error(f"Error fetching data: {e}")
-            return None  # Return None if data cannot be fetched
+    # Load Stock Data
+    data = load_stock_data(selected_stock)
 
-    # Load data for the selected stock ticker
-    data_load_state = st.text("Load data...")
-    data = load_data(selected_stock)
-    
     if data is not None:
-        data_load_state.text("Loading data...done!")
+        data["Date"] = pd.to_datetime(data["Date"]).dt.strftime("%Y-%m-%d")
 
-        st.subheader("Raw data")
-        st.write(data.tail())
+        st.markdown(
+            """
+            <style>
+                .dataframe-container {
+                    width: 100% !important;  /* Forces full width */
+                    max-width: 100% !important;
+                }
+                .dataframe-container table {
+                    width: 100% !important;
+                    table-layout: auto !important;
+                }
+                .dataframe-container th, .dataframe-container td {
+                    white-space: nowrap !important;  /* Prevents text wrapping */
+                    padding: 10px !important;
+                    font-size: 16px !important;
+                }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
 
+        # ✅ Use st.dataframe() to make sure it expands properly
+        st.dataframe(data.tail(), use_container_width=True)
+
+
+        # Plot Stock Prices
         def plot_raw_data():
+            # ✅ Get the latest date in the dataset
+            latest_date = pd.to_datetime(data['Date']).max()  # ✅ Ensures it's a datetime object
+
+            # ✅ Set the default starting view (e.g., last 1 year)
+            start_display_date = latest_date - pd.DateOffset(years=1)
+
+            # ✅ Create a new figure for historical stock data
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name='stock_open'))
-            fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name='stock_close'))
-            fig.layout.update(title_text="Time Series Data", xaxis_rangeslider_visible=True)
+
+            # ✅ Add only "Close" prices with a dark blue line
+            fig.add_trace(go.Scatter(
+                x=data['Date'], y=data['Close'], 
+                name="Close Prices", line=dict(color="blue")
+            ))
+
+            # ✅ Adjust default zoom to last year + future
+            fig.update_layout(
+                title="Stock Price Trend (Last Year)",
+                xaxis_rangeslider_visible=True,
+                xaxis=dict(range=[start_display_date, latest_date])
+            )
+
             st.plotly_chart(fig)
 
         plot_raw_data()
 
-        # Forecasting
-        df_train = data[['Date', 'Close']]
-        df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
+        # 📌 Forecasting Logic (Prophet or LSTM)
 
-        m = Prophet()
-        m.fit(df_train)
-        future = m.make_future_dataframe(periods=period)
-        forecast = m.predict(future)
+        # 📌 Select Prediction Model
+        model_choice = st.radio("Select Prediction Model:", ["Prophet", "LSTM"])
 
-        st.subheader('Forecast data')
-        st.write(forecast.tail())
+        latest_date = pd.to_datetime(data["Date"]).max()
 
-        st.write('Forecast Plot')
-        fig1 = plot_plotly(m, forecast)
-        fig1.update_traces(marker=dict(color='darkorange'))
-        st.plotly_chart(fig1)
+        if model_choice == "Prophet":
+            st.subheader("📊 Stock Price Forecast (Prophet)")
 
-        st.write('Forecast Components')
-        fig2 = m.plot_components(forecast)
-        st.write(fig2)
+            # ✅ Train Prophet Model
+            df_train = data[['Date', 'Close']].rename(columns={"Date": "ds", "Close": "y"})
+            model = Prophet()
+            model.fit(df_train)
+            future = model.make_future_dataframe(periods=365)
+            forecast = model.predict(future)
+
+            # ✅ Filter forecast to only show future predictions
+            future_forecast = forecast[forecast['ds'] >= latest_date]
+
+            # ✅ Create & Plot Prophet Forecast (No Changes)
+            fig_forecast = go.Figure()
+
+            fig_forecast.add_trace(go.Scatter(
+                x=data['Date'], y=data['Close'], 
+                name="Actual Prices", line=dict(color="blue")
+            ))
+
+            fig_forecast.add_trace(go.Scatter(
+                x=future_forecast['ds'], y=future_forecast['yhat'], 
+                name="Predicted Prices (Prophet)", line=dict(color="orange", dash="dash")
+            ))
+
+            fig_forecast.update_layout(
+                title="Stock Price Forecast (Prophet)",
+                xaxis_rangeslider_visible=True,
+                xaxis=dict(range=[latest_date - pd.DateOffset(years=1), future['ds'].max()])
+            )
+
+            st.plotly_chart(fig_forecast)
+
+        elif model_choice == "LSTM":
+            st.subheader("📊 Stock Price Forecast (LSTM)")
+
+            # ✅ Train LSTM Model
+            model, scaler = train_lstm_model(data)
+
+            # ✅ Predict with LSTM
+            lstm_forecast = predict_lstm(model, data, scaler, future_days=365)
+            future_dates = pd.date_range(start=latest_date, periods=365, freq="D")
+
+            # ✅ Create & Plot LSTM Forecast (Following Prophet's Format)
+            fig_lstm = go.Figure()
+
+            fig_lstm.add_trace(go.Scatter(
+                x=data['Date'], y=data['Close'], 
+                name="Actual Prices", line=dict(color="blue")
+            ))
+
+            fig_lstm.add_trace(go.Scatter(
+                x=future_dates, y=lstm_forecast, 
+                name="Predicted Prices (LSTM)", line=dict(color="green", dash="dash")
+            ))
+
+            fig_lstm.update_layout(
+                title="Stock Price Forecast (LSTM)",
+                xaxis_rangeslider_visible=True,
+                xaxis=dict(range=[latest_date - pd.DateOffset(years=1), future_dates.max()])
+            )
+
+            st.plotly_chart(fig_lstm)
+
+        # 📌 NEW: Fetch & Display Financial News
+        # 📌 Fetch & Display Financial News with GPT-3.5 Sentiment Analysis
+        st.subheader("📰 Latest Financial News with Sentiment Analysis")
+
+        news_headlines = get_financial_news(selected_stock)
+
+        if not news_headlines:
+            st.write("⚠ No recent news found for this ticker. Try another stock symbol.")
+        else:
+            sentiment_results = analyze_sentiment(news_headlines)
+
+            for title, url, timestamp, sentiment, explanation in sentiment_results:
+                st.markdown(f"**📰 [{title}]({url})**  \n📅 *Published on: {timestamp}*")
+                st.markdown(f"📊 **Sentiment:** {sentiment.capitalize()}")
+                st.markdown(f"💡 **Analysis:** {explanation}")
+                st.write("---")  # Adds a separator
+
+
     else:
-        # If data is None, the error message has already been displayed
-        st.write("Please enter a valid stock ticker to begin.")
-else:
-    st.write("Please enter a stock ticker to begin.")
+        st.write("❌ Invalid ticker symbol. Please enter a valid stock ticker.")

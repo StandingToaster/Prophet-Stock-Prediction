@@ -1,8 +1,32 @@
-# Prophet-Stock-Prediction
-A web application for predicting financial security prices using historical data. Built with Streamlit for the user interface, Yahoo Finance for data retrieval, and Facebook Prophet for time series forecasting.  Provides visualization and forecasting for stock prices based on historical trends
+# **Stock Forecasting & Sentiment Analysis**  
 
-Please ensure modules in the "requirements.txt" file are downloaded (advisable to set these up in a virtual envronment):
-You may need to download some pre-requisites before downloading prophet you can visit their website below for futher details:
-https://facebook.github.io/prophet/docs/installation.html
+A web application for predicting stock prices and analyzing market sentiment using machine learning and deep learning models. Built with **Streamlit** for the UI, **Yahoo Finance** for data retrieval, and both **Facebook Prophet** (Bayesian forecasting) and **LSTM (PyTorch)** for time-series prediction.  
 
-After the modules are installed, you can launch the app with "streamlit run main.py"
+### **Features**  
+- Compare forecasting models by selecting between **Prophet (statistical model)** and **LSTM (deep learning)** to predict stock trends  
+- Interactive visualizations using **Plotly** to display historical stock trends and predicted future prices  
+- Market sentiment analysis using **GPT-3.5**, which analyzes financial news headlines and classifies them as positive, negative, or neutral  
+- Real-time data retrieval from **Yahoo Finance API**  
+
+---
+
+### **Installation**  
+
+Ensure all dependencies are installed from **requirements.txt** (recommended inside a virtual environment). Prophet requires additional dependencies—refer to [Prophet Installation Guide](https://facebook.github.io/prophet/docs/installation.html).  
+
+```sh
+# Create and activate a virtual environment (optional but recommended)
+python -m venv env
+source env/bin/activate  # Mac/Linux
+env\Scripts\activate  # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### **Run the Application**  
+```sh
+streamlit run main.py
+```
+
+---

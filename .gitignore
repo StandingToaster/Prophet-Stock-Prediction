@@ -1,3 +1,4 @@
 fbprophet-env/
-
-f
+__pycache__/
+.env
+old/

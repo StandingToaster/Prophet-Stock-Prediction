@@ -1,7 +1,12 @@
 streamlit
 yfinance
 numpy
-prophet
-plotly
 pandas
-cmdstanpy
+plotly
+prophet
+torch
+transformers
+beautifulsoup4
+requests
+scikit-learn
+openai
